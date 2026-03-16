@@ -3,166 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中科廠 稼動率統計系統</title>
-    <link rel="stylesheet" href="style.css">
+    <title>中科廠 | 設備稼動率統計系統</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            display: flex;
+        }
+
+        /* 側邊欄 RWD 設計 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        /* 手機版自動隱藏側邊欄 */
+        @media (max-width: 992px) {
+            .sidebar { margin-left: calc(-1 * var(--sidebar-width)); }
+            .main-content { margin-left: 0; padding: 15px; }
+            .sidebar.active { margin-left: 0; }
+        }
+
+        .logo {
+            padding: 25px 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-menu { list-style: none; padding: 20px 0; margin: 0; }
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            color: #bdc3c7;
+        }
+        .nav-item i { margin-right: 15px; width: 20px; text-align: center; }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        /* 卡片美化 */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease-out;
+        }
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #edf2f7;
+            padding: 15px 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        .card-header i { margin-right: 10px; color: var(--accent-color); }
+
+        /* 輸入框微調 */
+        label { font-size: 0.9rem; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+        .form-control, .form-select {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+
+        /* 停機輸入專區 */
+        .downtime-input-box {
+            background-color: #f1f5f9;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        /* 狀態標籤 */
+        .tag-planned { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .tag-unplanned { background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+
+        /* Dashboard 卡片 */
+        .dash-card {
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            height: 100%;
+        }
+        .dash-card.blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .dash-card.green { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .dash-card.red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+    </style>
 </head>
 <body>
-    <div class="sidebar">
+
+    <div class="sidebar" id="sidebar">
         <div class="logo">
-            <h2>🏭 中科廠</h2>
-            <p>稼動率統計系統</p>
+            <h4 class="mb-0"><i class="fas fa-industry"></i> 中科廠</h4>
+            <p class="small opacity-50 mb-0">稼動率統計系統 v2.0</p>
         </div>
         <ul class="nav-menu">
-            <li class="nav-item active" onclick="switchTab('tab-daily')">📝 每日報工</li>
-            <li class="nav-item" onclick="switchTab('tab-stats')">📊 統計與導出</li>
-            <li class="nav-item" onclick="switchTab('tab-settings')">⚙️ 基礎設定</li>
+            <li class="nav-item active" onclick="switchTab('tab-daily')">
+                <i class="fas fa-edit"></i> 每日報工
+            </li>
+            <li class="nav-item" onclick="switchTab('tab-stats')">
+                <i class="fas fa-chart-line"></i> 統計與導出
+            </li>
+            <li class="nav-item" onclick="switchTab('tab-settings')">
+                <i class="fas fa-cog"></i> 基礎設定
+            </li>
         </ul>
     </div>
 
     <div class="main-content">
         
+        <div class="d-lg-none mb-3">
+            <button class="btn btn-dark" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i> 選單
+            </button>
+        </div>
+
         <section id="tab-daily" class="tab-pane active">
-            <div class="page-header">
-                <h2>每日報工</h2>
-                <span class="date-display" id="displayDate"></span>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-dark">📝 每日報工</h2>
+                <span class="badge bg-light text-primary border p-2" id="displayDate"></span>
             </div>
             
             <div class="card">
-                <div class="card-header">1. 生產基本資料</div>
-                <div class="form-row">
-                    <div class="input-group">
-                        <label>日期</label>
-                        <input type="date" id="workDate">
+                <div class="card-header"><i class="fas fa-info-circle"></i> 1. 生產基本資料</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <label>生產日期</label>
+                            <input type="date" class="form-control" id="workDate">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label>所屬線別</label>
+                            <select class="form-select" id="lineSelect" onchange="updateMachineList()"></select>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label>開線時間 (24H)</label>
+                            <input type="number" class="form-control" id="startTime" value="8" min="0" max="23">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label>結束時間 (24H)</label>
+                            <input type="number" class="form-control" id="endTime" value="17" min="0" max="23">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>線別</label>
-                        <select id="lineSelect" onchange="updateMachineList()"></select>
+                    <div class="mt-3 p-2 bg-light rounded border-start border-warning border-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="hasBreak">
+                            <label class="form-check-label text-dark" for="hasBreak">
+                                是否輪休 (預設不打勾：代表 12:00-13:00 休息，系統會自動扣除 60 分鐘)
+                            </label>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>開線時間 (24H)</label>
-                        <input type="number" id="startTime" placeholder="例: 08" min="0" max="23" value="8">
-                    </div>
-                    <div class="input-group">
-                        <label>結束時間 (24H)</label>
-                        <input type="number" id="endTime" placeholder="例: 17" min="0" max="23" value="17">
-                    </div>
-                </div>
-                <div class="checkbox-row">
-                    <input type="checkbox" id="hasBreak">
-                    <label for="hasBreak">是否輪休 (預設不打勾：代表 12:00-13:00 停機，自動扣除 60 分鐘休息時間)</label>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">2. 新增機台與停機紀錄</div>
-                <div class="form-row">
-                    <div class="input-group">
-                        <label>機台名稱</label>
-                        <select id="machineSelect"><option value="">請先選擇線別</option></select>
-                    </div>
-                    <div class="input-group">
-                        <label>登記人</label>
-                        <input type="text" id="operatorName" placeholder="請輸入姓名">
-                    </div>
-                </div>
-                
-                <div class="downtime-input-box">
-                    <div class="form-row" style="margin-bottom: 0; align-items: flex-end;">
-                        <div class="input-group" style="flex: 2;">
-                            <label>機台停機輸入</label>
-                            <select id="downtimeReason"></select>
+                <div class="card-header"><i class="fas fa-tools"></i> 2. 新增機台與停機紀錄</div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label>選擇機台</label>
+                            <select class="form-select" id="machineSelect"><option value="">請先選擇線別</option></select>
                         </div>
-                        <div class="input-group time-inputs" style="flex: 1; flex-direction: row; gap: 10px; align-items: center;">
-                            <input type="number" id="downtimeHrs" placeholder="0" min="0" style="width: 70px;"> 小時
-                            <input type="number" id="downtimeMins" placeholder="0" min="0" style="width: 70px;"> 分鐘
-                        </div>
-                        <div class="input-group" style="flex: 1;">
-                            <button class="btn-secondary" onclick="addDowntimeDetail()">➕ 加入停機</button>
+                        <div class="col-md-6">
+                            <label>登記人姓名</label>
+                            <input type="text" class="form-control" id="operatorName" placeholder="輸入姓名">
                         </div>
                     </div>
                     
-                    <div class="temp-downtime-list" id="tempDowntimeList">
+                    <div class="downtime-input-box">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-6">
+                                <label class="text-primary">停機原因/項目</label>
+                                <select class="form-select border-primary" id="downtimeReason"></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>停機時長 (時/分)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="downtimeHrs" placeholder="時">
+                                    <span class="input-group-text">H</span>
+                                    <input type="number" class="form-control" id="downtimeMins" placeholder="分">
+                                    <span class="input-group-text">M</span>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary w-100 py-2" onclick="addDowntimeDetail()">
+                                    <i class="fas fa-plus"></i> 加入
+                                </button>
+                            </div>
                         </div>
-                    <div class="downtime-summary">
-                        <span id="currentTotalDowntime" class="highlight-text">此機台總停機：0 分鐘</span>
-                        <button class="btn-success" onclick="saveMachineRecord()">💾 儲存此機台紀錄</button>
+                        
+                        <div class="mt-3 bg-white border rounded p-2" id="tempDowntimeList" style="min-height: 80px;">
+                            <div class="text-center text-muted small py-4">目前尚無停機明細</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items: center; mt-3">
+                            <div class="h5 fw-bold text-danger mb-0" id="currentTotalDowntime">
+                                總計：0 分鐘
+                            </div>
+                            <button class="btn btn-success px-4 fw-bold" onclick="saveMachineRecord()">
+                                <i class="fas fa-save"></i> 儲存此機台
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">3. 今日已輸入紀錄</div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>線別</th>
-                                <th>機台</th>
-                                <th>登記人</th>
-                                <th>開線 ~ 結束</th>
-                                <th>停機明細</th>
-                                <th>總停機 (分)</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dailyTableBody">
-                            <tr><td colspan="7" style="text-align: center; color: #999;">尚未儲存任何機台紀錄</td></tr>
-                        </tbody>
-                    </table>
+                <div class="card-header"><i class="fas fa-list-check"></i> 3. 今日已輸入紀錄 (待上傳)</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle" style="min-width: 900px;">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="ps-4">線別/機台</th>
+                                    <th>登記人</th>
+                                    <th>開線範圍</th>
+                                    <th>停機明細內容</th>
+                                    <th class="text-center">總停機(分)</th>
+                                    <th class="text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyTableBody">
+                                <tr><td colspan="6" class="text-center py-5 text-muted">尚未儲存任何機台紀錄</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section id="tab-stats" class="tab-pane">
-            <div class="page-header">
-                <h2>統計與導出</h2>
-            </div>
-            <div class="card">
-                <div class="card-header">條件篩選</div>
-                <div class="form-row">
-                    <div class="input-group"><label>開始日期</label><input type="date" id="filterStart"></div>
-                    <div class="input-group"><label>結束日期</label><input type="date" id="filterEnd"></div>
-                    <div class="input-group"><label>線別</label><select id="filterLine"><option>全部線別</option></select></div>
-                    <div class="input-group"><label>機台</label><select id="filterMachine"><option>全部機台</option></select></div>
-                    <div class="input-group"><label>&nbsp;</label><button class="btn-primary" onclick="alert('串接 Supabase 查詢中...')">🔍 查詢統計數據</button></div>
+            <h2 class="fw-bold mb-4">📊 統計儀表板</h2>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-2 col-6"><label>開始日期</label><input type="date" class="form-control" id="filterStart"></div>
+                        <div class="col-md-2 col-6"><label>結束日期</label><input type="date" class="form-control" id="filterEnd"></div>
+                        <div class="col-md-3 col-6"><label>線別</label><select class="form-select" id="filterLine"><option>全部線別</option></select></div>
+                        <div class="col-md-3 col-6"><label>機台</label><select class="form-select" id="filterMachine"><option>全部機台</option></select></div>
+                        <div class="col-md-2 col-12"><button class="btn btn-primary w-100" onclick="alert('串接 Supabase 中...')"><i class="fas fa-search"></i> 查詢</button></div>
+                    </div>
                 </div>
             </div>
             
-            <div class="card">
-                <div class="card-header">區間停機總和統整</div>
-                <div class="dashboard-cards">
-                    <div class="dash-card blue">
-                        <h4>總實際可用時間</h4>
-                        <p style="font-size: 12px; margin:0; opacity:0.8;">(已扣除休息與計畫性停機)</p>
-                        <h2>-- 分鐘</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="dash-card blue shadow">
+                        <h4>總可用時間</h4>
+                        <h2>-- <small class="fs-6">min</small></h2>
+                        <p class="mb-0 opacity-75 small">已扣除休息與計畫性停機</p>
                     </div>
-                    <div class="dash-card green">
-                        <h4>平均設備稼動率 (OEE)</h4>
-                        <h2>0.0 %</h2>
+                </div>
+                <div class="col-md-4">
+                    <div class="dash-card green shadow">
+                        <h4>平均設備稼動率</h4>
+                        <h2>0.0 <small class="fs-6">%</small></h2>
+                        <p class="mb-0 opacity-75 small">目標值：85%</p>
                     </div>
-                    <div class="dash-card red">
-                        <h4>非計畫停機總和</h4>
-                        <p style="font-size: 12px; margin:0; opacity:0.8;">(實際損失)</p>
-                        <h2>0 分鐘</h2>
+                </div>
+                <div class="col-md-4">
+                    <div class="dash-card red shadow">
+                        <h4>非計畫停機總損失</h4>
+                        <h2>0 <small class="fs-6">min</small></h2>
+                        <p class="mb-0 opacity-75 small">即故障/換料/異常總和</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <section id="tab-settings" class="tab-pane">
-            <div class="page-header">
-                <h2>基礎設定</h2>
-            </div>
+            <h2 class="fw-bold mb-4">⚙️ 系統基礎設定</h2>
             <div class="card">
-                <div class="card-header">線別與機台管理</div>
-                <p style="color: #666; padding: 10px;">此區域未來可串接資料庫，提供線別、機台清單與停機代碼的自訂增刪改查功能。</p>
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tools fa-3x text-light mb-3"></i>
+                    <h5 class="text-secondary">參數維護模組建置中</h5>
+                    <p class="text-muted">未來將提供線上新增線別與機台清單的功能</p>
+                </div>
             </div>
         </section>
 
     </div>
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            // 手機版換頁後自動縮回選單
+            if (window.innerWidth <= 992) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
-
- 
