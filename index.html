@@ -9,7 +9,10 @@
 </head>
 <body>
     <div class="sidebar">
-        <h3 class="logo">🏭 科雅 OEE Tracker</h3>
+        <div class="logo">
+            <h2>🏭 科雅 OEE</h2>
+            <p>稼動率統計系統</p>
+        </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('tab-daily')">📝 每日報工</li>
             <li class="nav-item" onclick="switchTab('tab-stats')">📊 統計與導出</li>
@@ -20,98 +23,131 @@
     <div class="main-content">
         
         <section id="tab-daily" class="tab-pane active">
-            <h2>每日報工</h2>
+            <div class="page-header">
+                <h2>每日報工</h2>
+                <span class="date-display" id="displayDate"></span>
+            </div>
             
             <div class="card">
-                <h3>1. 生產基本資料</h3>
-                <div class="form-grid">
-                    <div>
+                <div class="card-header">1. 生產基本資料</div>
+                <div class="form-row">
+                    <div class="input-group">
                         <label>日期</label>
                         <input type="date" id="workDate">
                     </div>
-                    <div>
+                    <div class="input-group">
                         <label>線別</label>
                         <select id="lineSelect" onchange="updateMachineList()"></select>
                     </div>
-                    <div>
-                        <label>開線時間 (24H)</label>
-                        <input type="number" id="startTime" placeholder="例: 08" min="0" max="23">
+                    <div class="input-group">
+                        <label>開線時間</label>
+                        <input type="time" id="startTime" value="08:00">
                     </div>
-                    <div>
-                        <label>結束時間 (24H)</label>
-                        <input type="number" id="endTime" placeholder="例: 17" min="0" max="23">
+                    <div class="input-group">
+                        <label>結束時間</label>
+                        <input type="time" id="endTime" value="17:00">
                     </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="hasBreak">
-                        <label for="hasBreak">是否輪休 (扣除休息 60 分鐘)</label>
-                    </div>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="hasBreak">
+                    <label for="hasBreak">是否輪休 (預設不打勾：代表 12:00-13:00 停機，自動扣除 60 分鐘休息)</label>
                 </div>
             </div>
 
             <div class="card">
-                <h3>2. 新增機台與停機紀錄</h3>
-                <div class="form-grid">
-                    <div>
+                <div class="card-header">2. 新增機台與停機紀錄</div>
+                <div class="form-row">
+                    <div class="input-group">
                         <label>機台名稱</label>
                         <select id="machineSelect"><option value="">請先選擇線別</option></select>
                     </div>
-                    <div>
-                        <label>登記人</label>
-                        <input type="text" id="operatorName" placeholder="輸入工號或姓名">
+                    <div class="input-group">
+                        <label>登記人 (工號/姓名)</label>
+                        <input type="text" id="operatorName" placeholder="例: 陳千豪">
                     </div>
-                    <div>
+                    <div class="input-group">
                         <label>停機項目</label>
                         <select id="downtimeReason"></select>
                     </div>
-                    <div>
-                        <label>停機時間 (分鐘)</label>
-                        <input type="number" id="downtimeMins" placeholder="輸入分鐘數">
+                    <div class="input-group">
+                        <label>停機時間 (分)</label>
+                        <input type="number" id="downtimeMins" placeholder="分鐘" min="1">
                     </div>
-                    <div>
+                    <div class="input-group" style="justify-content: flex-end;">
                         <label>&nbsp;</label>
-                        <button class="btn-primary" onclick="addDowntimeRecord()">➕ 加入停機</button>
+                        <button class="btn-secondary" onclick="addDowntimeRecord()">➕ 加入停機明細</button>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <h3>3. 今日暫存停機紀錄 (待儲存)</h3>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>機台</th>
-                            <th>停機分類</th>
-                            <th>原因</th>
-                            <th>時間(分)</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="downtimeTableBody">
-                        </tbody>
-                </table>
+                <div class="card-header">3. 今日已輸入紀錄 (待儲存)</div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>線別</th>
+                                <th>機台</th>
+                                <th>登記人</th>
+                                <th>開線 ~ 結束</th>
+                                <th>停機明細</th>
+                                <th>總停機 (分)</th>
+                                <th style="text-align: center;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyTableBody">
+                            </tbody>
+                    </table>
+                </div>
                 <div class="summary-bar">
-                    <span id="totalDowntimeLabel">此機台總停機：0 分鐘</span>
-                    <button class="btn-success" onclick="saveMachineDataToDB()">💾 儲存此機台紀錄</button>
+                    <span id="totalDowntimeLabel" class="highlight-text">此機台總停機：0 分鐘</span>
+                    <button class="btn-primary" onclick="saveToDatabase()">💾 儲存此機台紀錄</button>
                 </div>
             </div>
         </section>
 
         <section id="tab-stats" class="tab-pane">
-            <h2>統計與導出</h2>
+            <div class="page-header">
+                <h2>統計與導出</h2>
+            </div>
             <div class="card">
-                <p>查詢與 OEE 計算功能建置中...</p>
+                <div class="card-header">條件篩選</div>
+                <div class="form-row">
+                    <div class="input-group"><label>開始日期</label><input type="date" id="filterStart"></div>
+                    <div class="input-group"><label>結束日期</label><input type="date" id="filterEnd"></div>
+                    <div class="input-group"><label>線別</label><select id="filterLine"><option>全部線別</option></select></div>
+                    <div class="input-group"><label>機台</label><select id="filterMachine"><option>全部機台</option></select></div>
+                    <div class="input-group"><label>&nbsp;</label><button class="btn-primary">🔍 查詢</button></div>
                 </div>
+            </div>
+            
+            <div class="dashboard-cards">
+                <div class="dash-card blue">
+                    <h4>總實際可用時間</h4>
+                    <h2>-- 分鐘</h2>
+                </div>
+                <div class="dash-card green">
+                    <h4>平均設備稼動率 (OEE)</h4>
+                    <h2>0.0 %</h2>
+                </div>
+                <div class="dash-card red">
+                    <h4>非計畫停機總和 (損失)</h4>
+                    <h2>0 分鐘</h2>
+                </div>
+            </div>
         </section>
 
         <section id="tab-settings" class="tab-pane">
-            <h2>基礎設定 (線別、機台與停機原因管理)</h2>
+            <div class="page-header">
+                <h2>基礎設定</h2>
+            </div>
             <div class="card">
-                <p>此區塊可串接 LocalStorage，讓設備工程師自行新增機台清單...</p>
+                <div class="card-header">系統參數維護 (開發中)</div>
+                <p style="color: #666; padding: 20px;">此區域將提供線別、機台清單與停機代碼的增刪改查功能，以取代寫死在程式碼中的資料。</p>
             </div>
         </section>
 
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>
