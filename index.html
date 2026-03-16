@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>設備稼動率回報系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <h2>OEE 設備異常回報 (千豪專屬版)</h2>
+    
+    線別：<input type="text" id="input_line" placeholder="例如: SMT線"><br><br>
+    機台：<input type="text" id="input_machine" placeholder="例如: NPM貼片機"><br><br>
+    總工時(分)：<input type="number" id="input_time" placeholder="例如: 540"><br><br>
+    
+    <button onclick="sendData()">送出資料</button>
+
+    <script>
+        // 你的 Supabase 保險箱地址與鑰匙
+        const SUPABASE_URL = 'https://mmqsgkqpfpriwxztlxxc.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_N_Srv_Q8WkoCq6Q_z1mp2g_JCCPQf73'; // ⚠️ 請記得把這行換成你剛剛抄下來的鑰匙
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function sendData() {
+            let lineVal = document.getElementById('input_line').value;
+            let machineVal = document.getElementById('input_machine').value;
+            let timeVal = document.getElementById('input_time').value;
+
+            // 寫入資料庫
+            const { data, error } = await supabase
+                .from('machine_logs')
+                .insert([
+                    { 
+                        line_name: lineVal, 
+                        machine_name: machineVal, 
+                        total_time: timeVal 
+                    }
+                ]);
+
+            if (error) {
+                alert("糟糕，出錯了：" + error.message);
+            } else {
+                alert("太棒了！資料成功送到 Supabase 了！");
+            }
+        }
+    </script>
+
+</body>
+</html>
