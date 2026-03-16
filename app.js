@@ -1,5 +1,5 @@
 // ==========================================
-// 模組 0：Supabase 連線設定 (後續解鎖使用)
+// 模組 0：Supabase 連線設定 (沿用你設定好的金鑰)
 // ==========================================
 const SUPABASE_URL = 'https://mmqsgkqpfpriwxztlxxc.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_N_Srv_Q8WkoCq6Q_z1mp2g_JCCPQf73'; 
@@ -27,43 +27,29 @@ const sysConfig = {
     ]
 };
 
-// 暫存資料陣列：存放正在編輯機台的「停機明細」
 let tempDowntimeDetails = [];
-// 暫存資料陣列：存放今日已儲存的「所有機台報工紀錄」
 let todaySavedRecords = []; 
 
 // ==========================================
 // 模組 2：畫面初始化與基礎互動
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    // 日期預設為今天
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("workDate").value = today;
     document.getElementById("displayDate").innerText = today;
 
-    // 載入線別選單
     const lineSelect = document.getElementById("lineSelect");
     lineSelect.innerHTML = `<option value="">請選擇線別</option>`;
     sysConfig.lines.forEach(line => lineSelect.innerHTML += `<option value="${line}">${line}</option>`);
 
-    // 載入停機原因選單
     const reasonSelect = document.getElementById("downtimeReason");
     reasonSelect.innerHTML = `<option value="">請選擇停機項目</option>`;
     sysConfig.reasons.forEach(r => {
-        let tag = r.type === "計畫" ? "[計畫]" : "[異常]";
-        reasonSelect.innerHTML += `<option value="${r.name}|${r.type}">${tag} ${r.name}</option>`;
+        let icon = r.type === "計畫" ? "🟢" : "🔴";
+        reasonSelect.innerHTML += `<option value="${r.name}|${r.type}">${icon} [${r.type}] ${r.name}</option>`;
     });
 });
 
-// 切換分頁邏輯
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
-}
-
-// 連動機台選單
 function updateMachineList() {
     const line = document.getElementById("lineSelect").value;
     const machineSelect = document.getElementById("machineSelect");
@@ -74,10 +60,8 @@ function updateMachineList() {
 }
 
 // ==========================================
-// 模組 3：明細表新增與儲存邏輯 (Master-Detail)
+// 模組 3：明細表新增與儲存邏輯 (結合 Bootstrap UI)
 // ==========================================
-
-// 點擊「加入停機」
 function addDowntimeDetail() {
     const reasonVal = document.getElementById("downtimeReason").value;
     const hrs = parseInt(document.getElementById("downtimeHrs").value) || 0;
@@ -90,53 +74,53 @@ function addDowntimeDetail() {
     }
 
     const [reasonName, reasonType] = reasonVal.split("|");
-
-    // 推入暫存明細陣列
     tempDowntimeDetails.push({ reason: reasonName, type: reasonType, mins: totalMins });
     
-    // 清空輸入框
     document.getElementById("downtimeHrs").value = '';
     document.getElementById("downtimeMins").value = '';
-    
     renderTempDowntimeList();
 }
 
-// 渲染暫存的明細列表
 function renderTempDowntimeList() {
     const listDiv = document.getElementById("tempDowntimeList");
     listDiv.innerHTML = '';
     let totalMins = 0;
 
+    if(tempDowntimeDetails.length === 0) {
+        listDiv.innerHTML = '<div class="text-center text-muted small py-4">目前尚無停機明細</div>';
+        document.getElementById("currentTotalDowntime").innerText = `總計：0 分鐘`;
+        return;
+    }
+
     tempDowntimeDetails.forEach((item, index) => {
         totalMins += item.mins;
-        let cssClass = item.type === "計畫" ? "tag-planned" : "tag-unplanned";
-        let prefix = item.type === "計畫" ? "[計]" : "[非]";
+        // 動態給予 UI 標籤顏色
+        let badgeClass = item.type === "計畫" ? "bg-secondary" : "bg-danger";
         
         listDiv.innerHTML += `
-            <div class="temp-item">
-                <span><span class="${cssClass}">${prefix}</span> ${item.reason}</span>
-                <span>
-                    <strong>${item.mins}</strong> 分鐘 
-                    <button class="btn-danger" style="margin-left:10px;" onclick="removeTempDetail(${index})">刪除</button>
-                </span>
+            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div>
+                    <span class="badge ${badgeClass} me-2">${item.type}</span>
+                    <span class="fw-bold text-dark">${item.reason}</span>
+                </div>
+                <div>
+                    <span class="fw-bold text-primary me-3">${item.mins} <small class="text-muted fw-normal">分鐘</small></span>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeTempDetail(${index})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </div>
         `;
     });
 
-    if(tempDowntimeDetails.length === 0) {
-        listDiv.innerHTML = '<span style="color:#999;">目前無停機明細</span>';
-    }
-
-    document.getElementById("currentTotalDowntime").innerText = `此機台總停機：${totalMins} 分鐘`;
+    document.getElementById("currentTotalDowntime").innerText = `總計：${totalMins} 分鐘`;
 }
 
-// 刪除單筆暫存明細
 function removeTempDetail(index) {
     tempDowntimeDetails.splice(index, 1);
     renderTempDowntimeList();
 }
 
-// 點擊「儲存此機台紀錄」：打包主檔與明細，送到下方總表
 function saveMachineRecord() {
     const line = document.getElementById("lineSelect").value;
     const machine = document.getElementById("machineSelect").value;
@@ -150,39 +134,33 @@ function saveMachineRecord() {
         return;
     }
 
-    // 計算總工時
     let totalWorkMins = (endH - startH) * 60;
-    if (!hasBreak) { totalWorkMins -= 60; } // 預設扣除 60 分鐘休息
+    if (!hasBreak) { totalWorkMins -= 60; } 
 
-    // 打包資料
     const recordData = {
         line: line,
         machine: machine,
         operator: operator,
         timeRange: `${startH}:00 ~ ${endH}:00`,
         totalWorkMins: totalWorkMins,
-        details: [...tempDowntimeDetails] // 複製明細陣列
+        details: [...tempDowntimeDetails] 
     };
 
-    // 未來這裡可以加入 supabase.from('machine_logs').insert(...)
-
     todaySavedRecords.push(recordData);
-    alert(`✅ 已成功儲存 ${machine} 的報工紀錄！`);
+    alert(`✅ 已成功暫存 ${machine} 的報工紀錄！準備寫入資料庫。`);
     
-    // 清空暫存與重置畫面
     tempDowntimeDetails = [];
     document.getElementById("machineSelect").value = "";
     renderTempDowntimeList();
     renderDailyTable();
 }
 
-// 渲染下方「今日已輸入紀錄」總表
 function renderDailyTable() {
     const tbody = document.getElementById("dailyTableBody");
     tbody.innerHTML = '';
 
     if(todaySavedRecords.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">尚未儲存任何機台紀錄</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">尚未儲存任何機台紀錄</td></tr>';
         return;
     }
 
@@ -191,21 +169,26 @@ function renderDailyTable() {
         let totalDowntime = 0;
         
         record.details.forEach(detail => {
-            let cssClass = detail.type === "計畫" ? "tag-planned" : "tag-unplanned";
-            let prefix = detail.type === "計畫" ? "[計]" : "[非]";
-            detailsHtml += `<div style="margin-bottom:4px;"><span class="${cssClass}">${prefix}</span> ${detail.reason}: ${detail.mins}分</div>`;
+            let badgeClass = detail.type === "計畫" ? "bg-secondary" : "bg-danger";
+            detailsHtml += `<div class="mb-1"><span class="badge ${badgeClass} me-1">${detail.type}</span> ${detail.reason}: <span class="fw-bold">${detail.mins}</span> 分</div>`;
             totalDowntime += detail.mins;
         });
 
         tbody.innerHTML += `
             <tr>
-                <td>${record.line}</td>
-                <td><strong>${record.machine}</strong></td>
-                <td>${record.operator}</td>
-                <td>${record.timeRange}</td>
-                <td>${detailsHtml || '<span style="color:#999;">無停機</span>'}</td>
-                <td style="color:red; font-weight:bold; font-size:16px;">${totalDowntime}</td>
-                <td><button class="btn-danger" onclick="deleteSavedRecord(${index})">刪除</button></td>
+                <td class="ps-4">
+                    <div class="text-muted small">${record.line}</div>
+                    <div class="fw-bold text-primary">${record.machine}</div>
+                </td>
+                <td><div class="fw-bold text-dark mt-2">${record.operator}</div></td>
+                <td><div class="mt-2 badge bg-light text-dark border">${record.timeRange}</div></td>
+                <td>${detailsHtml || '<span class="text-muted">無停機</span>'}</td>
+                <td class="text-center"><span class="fs-5 fw-bold text-danger">${totalDowntime}</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-danger mt-1" onclick="deleteSavedRecord(${index})">
+                        <i class="fas fa-trash"></i> 刪除
+                    </button>
+                </td>
             </tr>
         `;
     });
