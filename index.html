@@ -3,179 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>科雅光電 - 設備稼動率回報系統</title>
+    <title>中科廠 稼動率統計系統</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #e9ecef;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #0056b3;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-        .header h2 {
-            margin: 0;
-            color: #0056b3;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-            color: #495057;
-        }
-        input[type="text"], input[type="number"], select {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            background-color: #0056b3;
-            color: white;
-            padding: 15px;
-            border: none;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #004494;
-        }
-        .hint {
-            font-size: 13px;
-            color: #6c757d;
-            margin-top: -15px;
-            margin-bottom: 20px;
-            display: block;
-        }
-    </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="header">
-        <h2>📊 設備稼動率回報系統</h2>
-        <p style="margin-top: 5px; color: #666; font-size: 14px;">每日下班前請確實填寫</p>
+    <div class="sidebar">
+        <h3 class="logo">🏭 科雅 OEE Tracker</h3>
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="switchTab('tab-daily')">📝 每日報工</li>
+            <li class="nav-item" onclick="switchTab('tab-stats')">📊 統計與導出</li>
+            <li class="nav-item" onclick="switchTab('tab-settings')">⚙️ 基礎設定</li>
+        </ul>
     </div>
 
-    <label for="input_line">1. 線別 (Line) *</label>
-    <select id="input_line" onchange="updateMachineList()">
-        <option value="" disabled selected>請選擇線別...</option>
-        <option value="SMT線">SMT線</option>
-        <option value="雷切線">雷切線</option>
-        <option value="DAF線">DAF線</option>
-        <option value="結構組裝線">結構組裝線</option>
-    </select>
-
-    <label for="input_machine">2. 設備名稱 *</label>
-    <select id="input_machine">
-        <option value="" disabled selected>請先選擇上方線別...</option>
-    </select>
-
-    <label for="input_time">3. 總工時 (分鐘) *</label>
-    <span class="hint">範例：常日班請填 540，依加班時間遞增</span>
-    <input type="number" id="input_time" placeholder="請輸入總工時">
-
-    <button onclick="sendData()" id="submitBtn">📤 送出資料</button>
-</div>
-
-<script>
-    // --- 【防呆設計】動態機台選單連動邏輯 ---
-    const machineData = {
-        "SMT線": ["SPG 印刷機", "SPI 錫膏檢查機", "NPM 貼片機", "BTU 迴焊爐", "AOI 檢測機", "UF 點膠機", "FU 點膠機"],
-        "雷切線": ["雷切機(1)", "雷切機(2)"],
-        "DAF線": ["DAF機(1)", "DAF機(2)", "PLASMA 清洗機", "1000x1300 脫泡機", "RD 點膠機"],
-        "結構組裝線": ["自動鎖螺絲機", "功能測試機"]
-    };
-
-    function updateMachineList() {
-        const lineSelect = document.getElementById("input_line");
-        const machineSelect = document.getElementById("input_machine");
-        const selectedLine = lineSelect.value;
+    <div class="main-content">
         
-        // 清空現有機台選單
-        machineSelect.innerHTML = '<option value="" disabled selected>請選擇設備名稱...</option>';
-        
-        // 帶入對應的機台
-        if (machineData[selectedLine]) {
-            machineData[selectedLine].forEach(function(machine) {
-                let option = document.createElement("option");
-                option.value = machine;
-                option.text = machine;
-                machineSelect.appendChild(option);
-            });
-        }
-    }
+        <section id="tab-daily" class="tab-pane active">
+            <h2>每日報工</h2>
+            
+            <div class="card">
+                <h3>1. 生產基本資料</h3>
+                <div class="form-grid">
+                    <div>
+                        <label>日期</label>
+                        <input type="date" id="workDate">
+                    </div>
+                    <div>
+                        <label>線別</label>
+                        <select id="lineSelect" onchange="updateMachineList()"></select>
+                    </div>
+                    <div>
+                        <label>開線時間 (24H)</label>
+                        <input type="number" id="startTime" placeholder="例: 08" min="0" max="23">
+                    </div>
+                    <div>
+                        <label>結束時間 (24H)</label>
+                        <input type="number" id="endTime" placeholder="例: 17" min="0" max="23">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hasBreak">
+                        <label for="hasBreak">是否輪休 (扣除休息 60 分鐘)</label>
+                    </div>
+                </div>
+            </div>
 
-    // --- Supabase 資料庫連線設定 ---
-    const SUPABASE_URL = 'https://mmqsgkqpfpriwxztlxxc.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_N_Srv_Q8WkoCq6Q_z1mp2g_JCCPQf73'; // ⚠️ 千豪，記得換成你抄下來的鑰匙！
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            <div class="card">
+                <h3>2. 新增機台與停機紀錄</h3>
+                <div class="form-grid">
+                    <div>
+                        <label>機台名稱</label>
+                        <select id="machineSelect"><option value="">請先選擇線別</option></select>
+                    </div>
+                    <div>
+                        <label>登記人</label>
+                        <input type="text" id="operatorName" placeholder="輸入工號或姓名">
+                    </div>
+                    <div>
+                        <label>停機項目</label>
+                        <select id="downtimeReason"></select>
+                    </div>
+                    <div>
+                        <label>停機時間 (分鐘)</label>
+                        <input type="number" id="downtimeMins" placeholder="輸入分鐘數">
+                    </div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button class="btn-primary" onclick="addDowntimeRecord()">➕ 加入停機</button>
+                    </div>
+                </div>
+            </div>
 
-    // --- 送出資料邏輯 ---
-    async function sendData() {
-        // 防止重複點擊
-        document.getElementById("submitBtn").disabled = true;
-        document.getElementById("submitBtn").innerText = "⏳ 傳送中...";
+            <div class="card">
+                <h3>3. 今日暫存停機紀錄 (待儲存)</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>機台</th>
+                            <th>停機分類</th>
+                            <th>原因</th>
+                            <th>時間(分)</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="downtimeTableBody">
+                        </tbody>
+                </table>
+                <div class="summary-bar">
+                    <span id="totalDowntimeLabel">此機台總停機：0 分鐘</span>
+                    <button class="btn-success" onclick="saveMachineDataToDB()">💾 儲存此機台紀錄</button>
+                </div>
+            </div>
+        </section>
 
-        let lineVal = document.getElementById('input_line').value;
-        let machineVal = document.getElementById('input_machine').value;
-        let timeVal = document.getElementById('input_time').value;
+        <section id="tab-stats" class="tab-pane">
+            <h2>統計與導出</h2>
+            <div class="card">
+                <p>查詢與 OEE 計算功能建置中...</p>
+                </div>
+        </section>
 
-        // 簡單的空白防呆檢查
-        if(!lineVal || !machineVal || !timeVal) {
-            alert("⚠️ 請將線別、機台與總工時填寫完整！");
-            document.getElementById("submitBtn").disabled = false;
-            document.getElementById("submitBtn").innerText = "📤 送出資料";
-            return;
-        }
+        <section id="tab-settings" class="tab-pane">
+            <h2>基礎設定 (線別、機台與停機原因管理)</h2>
+            <div class="card">
+                <p>此區塊可串接 LocalStorage，讓設備工程師自行新增機台清單...</p>
+            </div>
+        </section>
 
-        // 寫入 Supabase 資料庫
-        const { data, error } = await supabase
-            .from('machine_logs')
-            .insert([
-                { 
-                    line_name: lineVal, 
-                    machine_name: machineVal, 
-                    total_time: timeVal 
-                }
-            ]);
+    </div>
 
-        if (error) {
-            alert("❌ 糟糕，出錯了：" + error.message);
-        } else {
-            alert("✅ 太棒了！設備稼動數據已成功送到資料庫！");
-            // 成功後清空表單
-            document.getElementById('input_time').value = '';
-        }
-        
-        // 恢復按鈕
-        document.getElementById("submitBtn").disabled = false;
-        document.getElementById("submitBtn").innerText = "📤 送出資料";
-    }
-</script>
-
+    <script src="app.js"></script>
 </body>
 </html>
