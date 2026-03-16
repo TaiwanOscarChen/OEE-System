@@ -1,4 +1,15 @@
 // ==========================================
+// 模組 0：Supabase 資料庫連線設定 (金鑰放這裡)
+// ==========================================
+const SUPABASE_URL = 'https://mmqsgkqpfpriwxztlxxc.supabase.co'; 
+const SUPABASE_KEY = 'sb_publishable_N_Srv_Q8WkoCq6Q_z1mp2g_JCCPQf73'; // 👉 把金鑰貼在這個單引號裡面！
+
+// 啟動連線
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// (下面接著是你原本 app.js 裡的 模組 1：系統參數與防呆資料庫...)
+
+// ==========================================
 // 模組 1：系統參數與防呆資料庫 (模擬基礎設定)
 // ==========================================
 const sysConfig = {
