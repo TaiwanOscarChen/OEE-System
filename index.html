@@ -10,7 +10,7 @@
 <body>
     <div class="sidebar">
         <div class="logo">
-            <h2>🏭 科雅 OEE</h2>
+            <h2>🏭 中科廠</h2>
             <p>稼動率統計系統</p>
         </div>
         <ul class="nav-menu">
@@ -40,17 +40,17 @@
                         <select id="lineSelect" onchange="updateMachineList()"></select>
                     </div>
                     <div class="input-group">
-                        <label>開線時間</label>
-                        <input type="time" id="startTime" value="08:00">
+                        <label>開線時間 (24H)</label>
+                        <input type="number" id="startTime" placeholder="例: 08" min="0" max="23" value="8">
                     </div>
                     <div class="input-group">
-                        <label>結束時間</label>
-                        <input type="time" id="endTime" value="17:00">
+                        <label>結束時間 (24H)</label>
+                        <input type="number" id="endTime" placeholder="例: 17" min="0" max="23" value="17">
                     </div>
                 </div>
                 <div class="checkbox-row">
                     <input type="checkbox" id="hasBreak">
-                    <label for="hasBreak">是否輪休 (預設不打勾：代表 12:00-13:00 停機，自動扣除 60 分鐘休息)</label>
+                    <label for="hasBreak">是否輪休 (預設不打勾：代表 12:00-13:00 停機，自動扣除 60 分鐘休息時間)</label>
                 </div>
             </div>
 
@@ -62,26 +62,37 @@
                         <select id="machineSelect"><option value="">請先選擇線別</option></select>
                     </div>
                     <div class="input-group">
-                        <label>登記人 (工號/姓名)</label>
-                        <input type="text" id="operatorName" placeholder="例: 陳千豪">
+                        <label>登記人</label>
+                        <input type="text" id="operatorName" placeholder="請輸入姓名">
                     </div>
-                    <div class="input-group">
-                        <label>停機項目</label>
-                        <select id="downtimeReason"></select>
+                </div>
+                
+                <div class="downtime-input-box">
+                    <div class="form-row" style="margin-bottom: 0; align-items: flex-end;">
+                        <div class="input-group" style="flex: 2;">
+                            <label>機台停機輸入</label>
+                            <select id="downtimeReason"></select>
+                        </div>
+                        <div class="input-group time-inputs" style="flex: 1; flex-direction: row; gap: 10px; align-items: center;">
+                            <input type="number" id="downtimeHrs" placeholder="0" min="0" style="width: 70px;"> 小時
+                            <input type="number" id="downtimeMins" placeholder="0" min="0" style="width: 70px;"> 分鐘
+                        </div>
+                        <div class="input-group" style="flex: 1;">
+                            <button class="btn-secondary" onclick="addDowntimeDetail()">➕ 加入停機</button>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>停機時間 (分)</label>
-                        <input type="number" id="downtimeMins" placeholder="分鐘" min="1">
-                    </div>
-                    <div class="input-group" style="justify-content: flex-end;">
-                        <label>&nbsp;</label>
-                        <button class="btn-secondary" onclick="addDowntimeRecord()">➕ 加入停機明細</button>
+                    
+                    <div class="temp-downtime-list" id="tempDowntimeList">
+                        </div>
+                    <div class="downtime-summary">
+                        <span id="currentTotalDowntime" class="highlight-text">此機台總停機：0 分鐘</span>
+                        <button class="btn-success" onclick="saveMachineRecord()">💾 儲存此機台紀錄</button>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">3. 今日已輸入紀錄 (待儲存)</div>
+                <div class="card-header">3. 今日已輸入紀錄</div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
@@ -92,16 +103,13 @@
                                 <th>開線 ~ 結束</th>
                                 <th>停機明細</th>
                                 <th>總停機 (分)</th>
-                                <th style="text-align: center;">操作</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="dailyTableBody">
-                            </tbody>
+                            <tr><td colspan="7" style="text-align: center; color: #999;">尚未儲存任何機台紀錄</td></tr>
+                        </tbody>
                     </table>
-                </div>
-                <div class="summary-bar">
-                    <span id="totalDowntimeLabel" class="highlight-text">此機台總停機：0 分鐘</span>
-                    <button class="btn-primary" onclick="saveToDatabase()">💾 儲存此機台紀錄</button>
                 </div>
             </div>
         </section>
@@ -117,22 +125,27 @@
                     <div class="input-group"><label>結束日期</label><input type="date" id="filterEnd"></div>
                     <div class="input-group"><label>線別</label><select id="filterLine"><option>全部線別</option></select></div>
                     <div class="input-group"><label>機台</label><select id="filterMachine"><option>全部機台</option></select></div>
-                    <div class="input-group"><label>&nbsp;</label><button class="btn-primary">🔍 查詢</button></div>
+                    <div class="input-group"><label>&nbsp;</label><button class="btn-primary" onclick="alert('串接 Supabase 查詢中...')">🔍 查詢統計數據</button></div>
                 </div>
             </div>
             
-            <div class="dashboard-cards">
-                <div class="dash-card blue">
-                    <h4>總實際可用時間</h4>
-                    <h2>-- 分鐘</h2>
-                </div>
-                <div class="dash-card green">
-                    <h4>平均設備稼動率 (OEE)</h4>
-                    <h2>0.0 %</h2>
-                </div>
-                <div class="dash-card red">
-                    <h4>非計畫停機總和 (損失)</h4>
-                    <h2>0 分鐘</h2>
+            <div class="card">
+                <div class="card-header">區間停機總和統整</div>
+                <div class="dashboard-cards">
+                    <div class="dash-card blue">
+                        <h4>總實際可用時間</h4>
+                        <p style="font-size: 12px; margin:0; opacity:0.8;">(已扣除休息與計畫性停機)</p>
+                        <h2>-- 分鐘</h2>
+                    </div>
+                    <div class="dash-card green">
+                        <h4>平均設備稼動率 (OEE)</h4>
+                        <h2>0.0 %</h2>
+                    </div>
+                    <div class="dash-card red">
+                        <h4>非計畫停機總和</h4>
+                        <p style="font-size: 12px; margin:0; opacity:0.8;">(實際損失)</p>
+                        <h2>0 分鐘</h2>
+                    </div>
                 </div>
             </div>
         </section>
@@ -142,8 +155,8 @@
                 <h2>基礎設定</h2>
             </div>
             <div class="card">
-                <div class="card-header">系統參數維護 (開發中)</div>
-                <p style="color: #666; padding: 20px;">此區域將提供線別、機台清單與停機代碼的增刪改查功能，以取代寫死在程式碼中的資料。</p>
+                <div class="card-header">線別與機台管理</div>
+                <p style="color: #666; padding: 10px;">此區域未來可串接資料庫，提供線別、機台清單與停機代碼的自訂增刪改查功能。</p>
             </div>
         </section>
 
