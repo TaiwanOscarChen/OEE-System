@@ -1,3 +1,6 @@
+/* ==========================================
+   1. 系統變數與重置 (戰情室沉穩配色)
+   ========================================== */
 :root {
     --primary: #2c3e50;
     --primary-hover: #1a252f;
@@ -8,13 +11,16 @@
     --card-bg: #ffffff;
     --border: #d2d6de;
     --text-main: #333333;
+    --transition-speed: 0.3s;
 }
 
 * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { margin: 0; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
+body { margin: 0; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; }
 
-/* 左側導覽列 */
-.sidebar { width: 230px; background-color: var(--primary); color: #fff; display: flex; flex-direction: column; }
+/* ==========================================
+   2. 左側導覽列 (RWD 自動隱藏機制)
+   ========================================== */
+.sidebar { width: 230px; background-color: var(--primary); color: #fff; display: flex; flex-direction: column; transition: all var(--transition-speed); z-index: 100;}
 .logo { padding: 20px; text-align: center; border-bottom: 1px solid #1a252f; background-color: #233140; }
 .logo h2 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .logo p { margin: 5px 0 0 0; font-size: 13px; color: #a5b1c2; }
@@ -23,61 +29,139 @@ body { margin: 0; display: flex; height: 100vh; background-color: var(--bg-color
 .nav-item:hover { background-color: #1e282c; color: #fff; }
 .nav-item.active { background-color: #1e282c; border-left: 4px solid var(--secondary); color: #fff; font-weight: bold; }
 
-/* 主內容區 */
-.main-content { flex: 1; padding: 20px 30px; overflow-y: auto; }
-.tab-pane { display: none; animation: fadeIn 0.3s; }
-.tab-pane.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+/* ==========================================
+   3. 主內容區與進場動畫
+   ========================================== */
+.main-content { flex: 1; padding: 20px 30px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tab-pane { display: none; opacity: 0; transition: opacity var(--transition-speed) ease-in-out; }
+.tab-pane.active { display: block; opacity: 1; animation: fadeIn 0.4s ease-out forwards; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .page-header h2 { margin: 0; color: #222; font-size: 24px; }
 .date-display { font-weight: bold; color: var(--secondary); font-size: 18px; }
 
-/* 卡片設計 */
-.card { background: var(--card-bg); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; border-top: 3px solid var(--secondary); }
+/* ==========================================
+   4. 卡片模組與浮動陰影 (防呆視覺區隔)
+   ========================================== */
+.card { 
+    background: var(--card-bg); 
+    border-radius: 6px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08); 
+    padding: 24px; 
+    margin-bottom: 20px; 
+    border-top: 3px solid var(--secondary); 
+    animation: slideUpFade 0.5s ease-out both;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.card:nth-child(2) { animation-delay: 0.1s; border-top-color: var(--primary); }
+.card:nth-child(3) { animation-delay: 0.2s; border-top-color: var(--danger); }
+.card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .card-header { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
 
-/* 表單排版 */
+/* ==========================================
+   5. RWD 表單佈局與觸控優化 (Poka-yoke)
+   ========================================== */
 .form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
-.input-group { flex: 1; min-width: 150px; display: flex; flex-direction: column; }
-.input-group label { font-size: 13px; color: #666; margin-bottom: 5px; font-weight: bold; }
-input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; outline: none; transition: 0.2s; }
-input:focus, select:focus { border-color: var(--secondary); }
-.checkbox-row { margin-top: 10px; font-size: 14px; color: #444; display: flex; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 4px; border-left: 3px solid #f39c12; }
-.checkbox-row input { margin-right: 10px; width: 18px; height: 18px; }
+.input-group { flex: 1 1 200px; display: flex; flex-direction: column; } /* RWD: 寬度低於200px自動折行 */
+.input-group label { font-size: 13px; color: #666; margin-bottom: 6px; font-weight: bold; }
 
-/* 停機輸入專區 */
-.downtime-input-box { background-color: #f8f9fa; border: 1px dashed #bbb; padding: 15px; border-radius: 4px; margin-top: 15px; }
+input, select { 
+    padding: 10px 12px; 
+    height: 44px; /* 放大觸控熱區至 44px */
+    border: 1px solid var(--border); 
+    border-radius: 4px; 
+    font-size: 15px; 
+    outline: none; 
+    transition: border-color 0.2s, box-shadow 0.2s; 
+}
+input:focus, select:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+
+.checkbox-row { margin-top: 10px; font-size: 14px; color: #444; display: flex; align-items: center; background: #f9f9f9; padding: 12px; border-radius: 4px; border-left: 3px solid #f39c12; }
+.checkbox-row input { margin-right: 10px; width: 18px; height: 18px; cursor: pointer; }
+.checkbox-row label { cursor: pointer; }
+
+/* ==========================================
+   6. 停機輸入專區與動態列表
+   ========================================== */
+.downtime-input-box { background-color: #f8f9fa; border: 1px dashed #bbb; padding: 20px; border-radius: 6px; margin-top: 15px; }
 .temp-downtime-list { margin-top: 15px; padding: 10px; background: #fff; border: 1px solid #eee; border-radius: 4px; min-height: 50px; }
-.temp-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+.temp-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; animation: slideInLeft 0.3s ease-out; }
 .temp-item:last-child { border-bottom: none; }
-.downtime-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--border); }
+
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+.downtime-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--border); flex-wrap: wrap; gap: 15px;}
 .highlight-text { font-size: 18px; font-weight: bold; color: var(--danger); }
 
-/* 按鈕 */
-button { padding: 8px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+/* ==========================================
+   7. 互動按鈕 (下壓物理回饋)
+   ========================================== */
+button { 
+    height: 44px;
+    padding: 0 15px; 
+    border: none; 
+    border-radius: 4px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+button:active { transform: scale(0.96); } /* 防呆回饋：點擊縮放 */
+
 .btn-primary { background-color: var(--secondary); color: white; }
-.btn-primary:hover { background-color: #2980b9; }
+.btn-primary:hover { background-color: #2980b9; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3); }
 .btn-secondary { background-color: #605ca8; color: white; }
-.btn-secondary:hover { background-color: #4b4884; }
-.btn-success { background-color: var(--success); color: white; padding: 10px 20px; font-size: 15px;}
-.btn-success:hover { background-color: #219a52; }
-.btn-danger { background-color: var(--danger); color: white; padding: 4px 8px; font-size: 12px; }
+.btn-secondary:hover { background-color: #4b4884; box-shadow: 0 4px 8px rgba(96, 92, 168, 0.3); }
+.btn-success { background-color: var(--success); color: white; padding: 0 24px; font-size: 16px; }
+.btn-success:hover { background-color: #219a52; box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); }
+.btn-danger { background-color: var(--danger); color: white; height: 32px; padding: 0 10px; font-size: 12px; }
 
-/* 表格 */
-.table-responsive { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-.data-table th, .data-table td { border: 1px solid var(--border); padding: 10px; text-align: left; vertical-align: middle;}
+/* ==========================================
+   8. 響應式資料表格
+   ========================================== */
+.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.data-table { width: 100%; min-width: 650px; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.data-table th, .data-table td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: middle; }
 .data-table th { background-color: #f4f4f4; color: #333; font-weight: bold; }
+.data-table tbody tr { transition: background-color 0.2s; }
 .data-table tbody tr:hover { background-color: #f9f9f9; }
-.tag-planned { background: #e2e3e5; color: #383d41; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-right: 5px;}
-.tag-unplanned { background: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px;}
 
-/* Dashboard 儀表板卡片 */
-.dashboard-cards { display: flex; gap: 20px; margin-top: 15px; }
-.dash-card { flex: 1; padding: 20px; border-radius: 4px; color: white; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-.dash-card h4 { margin: 0 0 5px 0; font-weight: normal; font-size: 16px; }
-.dash-card h2 { margin: 10px 0 0 0; font-size: 32px; font-weight: bold; }
+.tag-planned { background: #e2e3e5; color: #383d41; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; font-weight: bold; }
+.tag-unplanned { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
+
+/* ==========================================
+   9. Dashboard 儀表板卡片
+   ========================================== */
+.dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 15px; }
+.dash-card { padding: 24px; border-radius: 6px; color: white; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: transform 0.3s; }
+.dash-card:hover { transform: translateY(-4px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); }
+.dash-card h4 { margin: 0 0 8px 0; font-weight: normal; font-size: 15px; opacity: 0.9; }
+.dash-card h2 { margin: 10px 0 0 0; font-size: 36px; font-weight: bold; }
 .dash-card.blue { background-color: #00c0ef; }
 .dash-card.green { background-color: #00a65a; }
 .dash-card.red { background-color: #dd4b39; }
+
+/* ==========================================
+   10. 手機與小螢幕 RWD 防呆斷點 (< 768px)
+   ========================================== */
+@media (max-width: 768px) {
+    .sidebar { display: none; } /* 隱藏側邊欄以釋放空間 */
+    .main-content { padding: 15px; }
+    .card { padding: 16px; }
+    .downtime-summary { flex-direction: column; align-items: stretch; gap: 10px; }
+    .btn-success { width: 100%; }
+    .time-inputs { flex-direction: column; align-items: flex-start; }
+}
